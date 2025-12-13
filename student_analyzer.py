@@ -9,9 +9,24 @@ PASS_MARK = 60
 students = {}
 
 
-# ---------- Utility Functions ----------
+# -------------------- Input Utilities --------------------
+def get_valid_name(prompt):
+    while True:
+        name = input(prompt).strip().title()
+        if name.replace(" ", ""):
+            return name
+        print("❗ Input cannot be empty or spaces only.")
+
+
+def get_valid_subject(prompt):
+    while True:
+        subject = input(prompt).strip().title()
+        if subject:
+            return subject
+        print("❗ Subject name cannot be empty.")
+
+
 def get_valid_score(subject):
-    """Keep asking until user enters a valid score."""
     while True:
         try:
             score = float(input(f"Enter score for {subject} (0-100): "))
@@ -22,42 +37,11 @@ def get_valid_score(subject):
             print("❗ Please enter a valid number.")
 
 
+# -------------------- Core Logic --------------------
 def calculate_average(subjects):
-    """Calculate average score safely."""
     return sum(subjects.values()) / len(subjects) if subjects else 0
 
 
-# ---------- Student Management ----------
-def add_student():
-    name = input("\nEnter student name: ").title()
-
-    if not name:
-        print("❗ Name cannot be empty.\n")
-        return
-
-    if name in students:
-        print("❗ Student already exists.\n")
-        return
-
-    students[name] = {"subjects": {}}
-    print(f"✔ Student '{name}' added successfully!\n")
-
-
-def add_score():
-    name = input("\nEnter student name: ").title()
-
-    if name not in students:
-        print("❗ Student not found.\n")
-        return
-
-    subject = input("Enter subject name: ").title()
-    score = get_valid_score(subject)
-
-    students[name]["subjects"][subject] = score
-    print(f"✔ Score updated for {name} in {subject}.\n")
-
-
-# ---------- Prediction Logic ----------
 def predict_grade(average):
     if average >= 90:
         return "A+", "Excellent performance"
@@ -71,25 +55,52 @@ def predict_grade(average):
         return "F", "Fail, improvement required"
 
 
-# ---------- Reporting ----------
+# -------------------- Student Management --------------------
+def add_student():
+    name = get_valid_name("\nEnter student name: ")
+
+    if name in students:
+        print("❗ Student already exists.\n")
+        return
+
+    students[name] = {"subjects": {}}
+    print(f"✔ Student '{name}' added successfully!\n")
+
+
+def add_score():
+    name = get_valid_name("\nEnter student name: ")
+
+    if name not in students:
+        print("❗ Student not found.\n")
+        return
+
+    subject = get_valid_subject("Enter subject name: ")
+    score = get_valid_score(subject)
+
+    students[name]["subjects"][subject] = score
+    print(f"✔ Score updated for {name} in {subject}.\n")
+
+
+# -------------------- Reporting --------------------
 def show_report():
-    name = input("\nEnter student name: ").title()
+    name = get_valid_name("\nEnter student name: ")
 
     if name not in students:
         print("❗ Student not found.\n")
         return
 
     subjects = students[name]["subjects"]
+
     if not subjects:
-        print("❗ No subjects available.\n")
+        print("❗ No subjects available for this student.\n")
         return
 
     print("\n================ REPORT =================")
     print(f"Student: {name}")
     print("----------------------------------------")
 
-    best = min(subjects, key=subjects.get)
-    worst = max(subjects, key=subjects.get)
+    best = max(subjects, key=subjects.get)
+    worst = min(subjects, key=subjects.get)
 
     for subject, score in subjects.items():
         print(f"{subject:<15}: {score}")
@@ -99,32 +110,34 @@ def show_report():
 
     print("----------------------------------------")
     print(f"Average Score : {avg:.2f}")
-    print(f"Grade         : {grade}")
-    print(f"Status        : {'PASS' if avg >= PASS_MARK else 'FAIL'}")
-    print(f"Remark        : {remark}")
+    print(f"Best Subject  : {best} ({subjects[best]})")
+    print(f"Weakest      : {worst} ({subjects[worst]})")
+    print(f"Grade        : {grade}")
+    print(f"Status       : {'PASS' if avg >= PASS_MARK else 'FAIL'}")
+    print(f"Remark       : {remark}")
     print("========================================\n")
 
 
 def show_leaderboard():
-    if not students:
-        print("\n❗ No students available.\n")
+    ranked = [
+        (name, calculate_average(data["subjects"]))
+        for name, data in students.items()
+        if data["subjects"]
+    ]
+
+    if not ranked:
+        print("\n❗ No students with scores yet.\n")
         return
 
+    ranked.sort(key=lambda x: x[1], reverse=True)
+
     print("\n============== LEADERBOARD ==============")
-    ranked = sorted(
-        students.items(),
-        key=lambda x: calculate_average(x[1]["subjects"]),
-        reverse=True
-    )
-
-    for index, (name, data) in enumerate(ranked, start=1):
-        avg = calculate_average(data["subjects"])
-        print(f"{index}. {name:<15} - {avg:.2f}")
-
+    for idx, (name, avg) in enumerate(ranked, start=1):
+        print(f"{idx}. {name:<15} - {avg:.2f}")
     print("========================================\n")
 
 
-# ---------- Main Menu ----------
+# -------------------- Main Menu --------------------
 def main():
     while True:
         print("=========== STUDENT ANALYZER ===========")
@@ -134,7 +147,7 @@ def main():
         print("4. Show Leaderboard")
         print("5. Exit")
 
-        choice = input("Choose an option: ")
+        choice = input("Choose an option: ").strip()
 
         if choice == "1":
             add_student()
@@ -148,7 +161,7 @@ def main():
             print("Goodbye! 👋")
             break
         else:
-            print("❗ Invalid choice.\n")
+            print("❗ Invalid choice. Try again.\n")
 
 
 main()
